@@ -53,6 +53,7 @@
     NSArray* _sortedAppList;
     NSCache* _boxArtCache;
     bool _background;
+    BOOL _autoLaunchedDesktop;
 #if TARGET_OS_TV
     UITapGestureRecognizer* _menuRecognizer;
 #endif
@@ -298,6 +299,7 @@ static NSMutableSet* hostList;
     _showHiddenApps = NO;
     _selectedHost = nil;
     _sortedAppList = nil;
+    _autoLaunchedDesktop = NO;
     
     [self updateTitle];
     [self disableUpButton];
@@ -1341,11 +1343,15 @@ static NSMutableSet* hostList;
 
     // OpenBench: Auto-launch "Desktop" app for screen sharing UX.
     // Skip the app grid and go straight to streaming.
-    for (TemporaryApp* app in _sortedAppList) {
-        if ([app.name isEqualToString:@"Desktop"]) {
-            Log(LOG_I, @"OpenBench: Auto-launching Desktop app");
-            [self appClicked:app view:nil];
-            return;
+    // Guard: only auto-launch once per host selection to prevent duplicate alerts.
+    if (!_autoLaunchedDesktop) {
+        for (TemporaryApp* app in _sortedAppList) {
+            if ([app.name isEqualToString:@"Desktop"]) {
+                _autoLaunchedDesktop = YES;
+                Log(LOG_I, @"OpenBench: Auto-launching Desktop app");
+                [self appClicked:app view:nil];
+                return;
+            }
         }
     }
 
