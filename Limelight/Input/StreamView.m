@@ -363,7 +363,7 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
                 keyInputField.text = @"0";
 #if !TARGET_OS_TV
                 // Prepare the toolbar above the keyboard for more options
-                UIToolbar *customToolbarView = [[UIToolbar alloc] initWithFrame:CGRectMake(0, 0, self.bounds.size.width, 36)];
+                UIToolbar *customToolbarView = [[UIToolbar alloc] initWithFrame:CGRectMake(0, 0, self.bounds.size.width, 32)];
 
                 UIBarButtonItem *doneBarButton = [self createButtonWithImageNamed:@"DoneIcon.png" backgroundColor:[UIColor clearColor] target:self action:@selector(toolbarButtonClicked:) keyCode:0x00 isToggleable:NO];
                 UIBarButtonItem *windowsBarButton = [self createButtonWithImageNamed:@"WindowsIcon.png" backgroundColor:[UIColor blackColor] target:self action:@selector(toolbarButtonClicked:) keyCode:0x5B isToggleable:YES];
@@ -395,11 +395,15 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
     UIImage *image = [UIImage imageNamed:imageName];
     UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
     [button setImage:image forState:UIControlStateNormal];
-    button.frame = CGRectMake(0, 0, 24, 24);
     button.imageView.contentMode = UIViewContentModeScaleAspectFit;
     button.imageView.backgroundColor = backgroundColor;
-    button.imageView.layer.cornerRadius = 6.0;
-    button.imageEdgeInsets = UIEdgeInsetsMake(4, 4, 4, 4);
+    button.imageView.layer.cornerRadius = 4.0;
+    button.translatesAutoresizingMaskIntoConstraints = NO;
+    [NSLayoutConstraint activateConstraints:@[
+        [button.widthAnchor constraintEqualToConstant:28],
+        [button.heightAnchor constraintEqualToConstant:28]
+    ]];
+    button.imageEdgeInsets = UIEdgeInsetsMake(5, 5, 5, 5);
     [button addTarget:target action:action forControlEvents:UIControlEventTouchUpInside];
     objc_setAssociatedObject(button, "keyCode", @(keyCode), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     objc_setAssociatedObject(button, "isToggleable", @(isToggleable), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
@@ -410,13 +414,17 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
 
 - (UIBarButtonItem *)createCmdTabButton {
     UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
-    [button setTitle:@"⌘Tab" forState:UIControlStateNormal];
+    [button setTitle:@"⌘⇥" forState:UIControlStateNormal];
     [button setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    button.titleLabel.font = [UIFont boldSystemFontOfSize:11];
-    button.frame = CGRectMake(0, 0, 44, 24);
+    button.titleLabel.font = [UIFont boldSystemFontOfSize:12];
     button.backgroundColor = [UIColor blackColor];
-    button.layer.cornerRadius = 6.0;
+    button.layer.cornerRadius = 4.0;
     button.clipsToBounds = YES;
+    button.translatesAutoresizingMaskIntoConstraints = NO;
+    [NSLayoutConstraint activateConstraints:@[
+        [button.widthAnchor constraintEqualToConstant:36],
+        [button.heightAnchor constraintEqualToConstant:28]
+    ]];
     [button addTarget:self action:@selector(cmdTabPressed) forControlEvents:UIControlEventTouchUpInside];
     UIBarButtonItem *barButton = [[UIBarButtonItem alloc] initWithCustomView:button];
     return barButton;
