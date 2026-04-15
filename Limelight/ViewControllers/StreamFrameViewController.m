@@ -233,6 +233,8 @@
     _hiddenKeyboardField.autocorrectionType = UITextAutocorrectionTypeNo;
     _hiddenKeyboardField.autocapitalizationType = UITextAutocapitalizationTypeNone;
     _hiddenKeyboardField.spellCheckingType = UITextSpellCheckingTypeNo;
+    _hiddenKeyboardField.returnKeyType = UIReturnKeyDone;
+    _hiddenKeyboardField.delegate = (id<UITextFieldDelegate>)self;
     [self.view addSubview:_hiddenKeyboardField];
 
     // Keyboard button
@@ -301,9 +303,25 @@
 - (void)toggleKeyboard {
     if (_hiddenKeyboardField.isFirstResponder) {
         [_hiddenKeyboardField resignFirstResponder];
+        [_keyboardButton setTintColor:[UIColor whiteColor]];
     } else {
+        // Ensure the field can become first responder
+        _hiddenKeyboardField.hidden = NO;
+        _hiddenKeyboardField.enabled = YES;
         [_hiddenKeyboardField becomeFirstResponder];
+        [_keyboardButton setTintColor:[UIColor systemBlueColor]];
     }
+}
+
+- (BOOL)textFieldShouldReturn:(UITextField *)textField {
+    // Enter key dismisses keyboard
+    [textField resignFirstResponder];
+    [_keyboardButton setTintColor:[UIColor whiteColor]];
+    // Send Enter key to remote Mac
+    LiSendKeyboardEvent(0x0D, KEY_ACTION_DOWN, 0);
+    usleep(50000);
+    LiSendKeyboardEvent(0x0D, KEY_ACTION_UP, 0);
+    return NO;
 }
 
 - (void)pasteFromClipboard {
@@ -523,7 +541,9 @@
         self->_stageLabel.hidden = YES;
         self->_tipLabel.hidden = YES;
         
-        [self->_streamView showOnScreenControls];
+        // OpenBench: Don't show gaming on-screen controls (D-pad, A/B/X/Y).
+        // Screen sharing doesn't need gamepad buttons.
+        // [self->_streamView showOnScreenControls];
         
         [self->_controllerSupport connectionEstablished];
         
