@@ -1341,20 +1341,6 @@ static NSMutableSet* hostList;
         _sortedAppList = visibleAppList;
     }
 
-    // OpenBench: Auto-launch "Desktop" app for screen sharing UX.
-    // Skip the app grid and go straight to streaming.
-    // Guard: only auto-launch once per host selection to prevent duplicate alerts.
-    if (!_autoLaunchedDesktop) {
-        for (TemporaryApp* app in _sortedAppList) {
-            if ([app.name isEqualToString:@"Desktop"]) {
-                _autoLaunchedDesktop = YES;
-                Log(LOG_I, @"OpenBench: Auto-launching Desktop app");
-                [self appClicked:app view:nil];
-                return;
-            }
-        }
-    }
-
     [hostScrollView removeFromSuperview];
     [self.collectionView reloadData];
 }
