@@ -47,9 +47,19 @@
     UIScrollView *_scrollView;
     BOOL _userIsInteracting;
     CGSize _keyboardSize;
-    
+
 #if !TARGET_OS_TV
     UIScreenEdgePanGestureRecognizer *_exitSwipeRecognizer;
+
+    // OpenBench: floating toolbar for screen sharing
+    UIStackView *_openBenchToolbar;
+    UIButton *_keyboardButton;
+    UIButton *_clipboardButton;
+    UIButton *_disconnectButton;
+    UITextField *_hiddenKeyboardField;
+    NSTimer *_clipboardPollTimer;
+    NSString *_lastClipboardContent;
+    BOOL _toolbarVisible;
 #endif
 }
 
@@ -143,7 +153,7 @@
 #if TARGET_OS_TV
     [_tipLabel setText:@"Tip: Tap the Play/Pause button on the Apple TV Remote to disconnect from your PC"];
 #else
-    [_tipLabel setText:@"Tip: Swipe from the left edge to disconnect from your PC"];
+    [_tipLabel setText:@"Tip: Triple-tap to toggle toolbar. Swipe from left edge to disconnect."];
 #endif
     
     [_tipLabel sizeToFit];
@@ -209,7 +219,139 @@
     [self.view addSubview:_stageLabel];
     [self.view addSubview:_spinner];
     [self.view addSubview:_tipLabel];
+
+#if !TARGET_OS_TV
+    [self setupOpenBenchToolbar];
+    [self startClipboardSync];
+#endif
 }
+
+#if !TARGET_OS_TV
+- (void)setupOpenBenchToolbar {
+    // Hidden text field for keyboard input
+    _hiddenKeyboardField = [[UITextField alloc] initWithFrame:CGRectZero];
+    _hiddenKeyboardField.autocorrectionType = UITextAutocorrectionTypeNo;
+    _hiddenKeyboardField.autocapitalizationType = UITextAutocapitalizationTypeNone;
+    _hiddenKeyboardField.spellCheckingType = UITextSpellCheckingTypeNo;
+    [self.view addSubview:_hiddenKeyboardField];
+
+    // Keyboard button
+    _keyboardButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    UIImage *kbImage = [UIImage systemImageNamed:@"keyboard"];
+    [_keyboardButton setImage:kbImage forState:UIControlStateNormal];
+    [_keyboardButton setTintColor:[UIColor whiteColor]];
+    [_keyboardButton addTarget:self action:@selector(toggleKeyboard) forControlEvents:UIControlEventTouchUpInside];
+    _keyboardButton.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.5];
+    _keyboardButton.layer.cornerRadius = 22;
+    _keyboardButton.translatesAutoresizingMaskIntoConstraints = NO;
+    [NSLayoutConstraint activateConstraints:@[
+        [_keyboardButton.widthAnchor constraintEqualToConstant:44],
+        [_keyboardButton.heightAnchor constraintEqualToConstant:44]
+    ]];
+
+    // Clipboard button
+    _clipboardButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    UIImage *cbImage = [UIImage systemImageNamed:@"doc.on.clipboard"];
+    [_clipboardButton setImage:cbImage forState:UIControlStateNormal];
+    [_clipboardButton setTintColor:[UIColor whiteColor]];
+    [_clipboardButton addTarget:self action:@selector(pasteFromClipboard) forControlEvents:UIControlEventTouchUpInside];
+    _clipboardButton.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.5];
+    _clipboardButton.layer.cornerRadius = 22;
+    _clipboardButton.translatesAutoresizingMaskIntoConstraints = NO;
+    [NSLayoutConstraint activateConstraints:@[
+        [_clipboardButton.widthAnchor constraintEqualToConstant:44],
+        [_clipboardButton.heightAnchor constraintEqualToConstant:44]
+    ]];
+
+    // Disconnect button
+    _disconnectButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    UIImage *dcImage = [UIImage systemImageNamed:@"xmark.circle"];
+    [_disconnectButton setImage:dcImage forState:UIControlStateNormal];
+    [_disconnectButton setTintColor:[UIColor whiteColor]];
+    [_disconnectButton addTarget:self action:@selector(disconnectStream) forControlEvents:UIControlEventTouchUpInside];
+    _disconnectButton.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.5];
+    _disconnectButton.layer.cornerRadius = 22;
+    _disconnectButton.translatesAutoresizingMaskIntoConstraints = NO;
+    [NSLayoutConstraint activateConstraints:@[
+        [_disconnectButton.widthAnchor constraintEqualToConstant:44],
+        [_disconnectButton.heightAnchor constraintEqualToConstant:44]
+    ]];
+
+    // Stack view toolbar
+    _openBenchToolbar = [[UIStackView alloc] initWithArrangedSubviews:@[_keyboardButton, _clipboardButton, _disconnectButton]];
+    _openBenchToolbar.axis = UILayoutConstraintAxisHorizontal;
+    _openBenchToolbar.spacing = 12;
+    _openBenchToolbar.translatesAutoresizingMaskIntoConstraints = NO;
+    _openBenchToolbar.alpha = 0.6;
+    [self.view addSubview:_openBenchToolbar];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [_openBenchToolbar.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor],
+        [_openBenchToolbar.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-8]
+    ]];
+
+    // Triple-tap to toggle toolbar visibility
+    UITapGestureRecognizer *tripleTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(toggleToolbar)];
+    tripleTap.numberOfTapsRequired = 3;
+    [self.view addGestureRecognizer:tripleTap];
+
+    _toolbarVisible = YES;
+}
+
+- (void)toggleKeyboard {
+    if (_hiddenKeyboardField.isFirstResponder) {
+        [_hiddenKeyboardField resignFirstResponder];
+    } else {
+        [_hiddenKeyboardField becomeFirstResponder];
+    }
+}
+
+- (void)pasteFromClipboard {
+    NSString *text = [UIPasteboard generalPasteboard].string;
+    if (text.length > 0) {
+        // Send entire clipboard text as UTF-8 to the remote Mac
+        NSData *utf8Data = [text dataUsingEncoding:NSUTF8StringEncoding];
+        if (utf8Data) {
+            LiSendUtf8TextEvent((const char *)[utf8Data bytes], (unsigned int)[utf8Data length]);
+        }
+    }
+}
+
+- (void)disconnectStream {
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Disconnect"
+                                                                  message:@"End the screen sharing session?"
+                                                           preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:@"Disconnect" style:UIAlertActionStyleDestructive handler:^(UIAlertAction *action) {
+        [self returnToMainFrame];
+    }]];
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)toggleToolbar {
+    _toolbarVisible = !_toolbarVisible;
+    [UIView animateWithDuration:0.3 animations:^{
+        self->_openBenchToolbar.alpha = self->_toolbarVisible ? 0.6 : 0.0;
+    }];
+}
+
+- (void)startClipboardSync {
+    _lastClipboardContent = [UIPasteboard generalPasteboard].string;
+    _clipboardPollTimer = [NSTimer scheduledTimerWithTimeInterval:2.0
+                                                          target:self
+                                                        selector:@selector(checkClipboardChange)
+                                                        userInfo:nil
+                                                         repeats:YES];
+}
+
+- (void)checkClipboardChange {
+    NSString *current = [UIPasteboard generalPasteboard].string;
+    if (current && ![current isEqualToString:_lastClipboardContent ?: @""]) {
+        _lastClipboardContent = current;
+        Log(LOG_I, @"OpenBench: Clipboard changed, ready to paste via toolbar button");
+    }
+}
+#endif
 
 - (UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView {
     return _streamView;
@@ -225,6 +367,12 @@
             [_inactivityTimer invalidate];
             _inactivityTimer = nil;
         }
+#if !TARGET_OS_TV
+        if (_clipboardPollTimer != nil) {
+            [_clipboardPollTimer invalidate];
+            _clipboardPollTimer = nil;
+        }
+#endif
         [[NSNotificationCenter defaultCenter] removeObserver:self];
     }
 }
