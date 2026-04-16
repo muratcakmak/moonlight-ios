@@ -134,10 +134,10 @@ static NSMutableSet* hostList;
         self.title = _selectedHost.name;
     }
     else if ([hostList count] == 0) {
-        self.title = @"Searching for PCs on your network...";
+        self.title = @"Searching for Macs...";
     }
     else {
-        self.title = @"Select Host";
+        self.title = @"OpenBench";
     }
 }
 
