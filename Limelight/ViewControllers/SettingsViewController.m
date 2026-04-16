@@ -263,6 +263,13 @@ BOOL isCustomResolution(CGSize res) {
     [self.bitrateSlider addTarget:self action:@selector(bitrateSliderMoved) forControlEvents:UIControlEventValueChanged];
     [self updateBitrateText];
     [self updateResolutionDisplayViewText];
+
+    // OpenBench: Hide game-specific settings
+    self.optimizeSettingsSelector.superview.hidden = YES;
+    self.multiControllerSelector.superview.hidden = YES;
+    self.swapABXYButtonsSelector.superview.hidden = YES;
+    self.onscreenControlSelector.superview.hidden = YES;
+    self.audioOnPCSelector.superview.hidden = YES;
 }
 
 - (void) touchModeChanged {
