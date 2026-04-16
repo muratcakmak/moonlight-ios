@@ -374,9 +374,10 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
                 UIBarButtonItem *altBarButton = [self createButtonWithImageNamed:@"AltIcon.png" backgroundColor:[UIColor blackColor] target:self action:@selector(toolbarButtonClicked:) keyCode:0xA4 isToggleable:YES];
                 UIBarButtonItem *deleteBarButton = [self createButtonWithImageNamed:@"DeleteIcon.png" backgroundColor:[UIColor blackColor] target:self action:@selector(toolbarButtonClicked:) keyCode:0x2E isToggleable:NO];
                 UIBarButtonItem *cmdTabBarButton = [self createCmdTabButton];
+                UIBarButtonItem *pasteBarButton = [self createPasteButton];
                 UIBarButtonItem *flexibleSpace = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil];
 
-                [customToolbarView setItems:[NSArray arrayWithObjects:doneBarButton, cmdTabBarButton, windowsBarButton, escapeBarButton, tabBarButton, shiftBarButton, controlBarButton, altBarButton, deleteBarButton, flexibleSpace, nil]];
+                [customToolbarView setItems:[NSArray arrayWithObjects:doneBarButton, cmdTabBarButton, pasteBarButton, windowsBarButton, escapeBarButton, tabBarButton, shiftBarButton, controlBarButton, altBarButton, deleteBarButton, flexibleSpace, nil]];
                 keyInputField.inputAccessoryView = customToolbarView;
 #endif
                 [keyInputField becomeFirstResponder];
@@ -439,6 +440,35 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
     LiSendKeyboardEvent(0x09, KEY_ACTION_UP, 0);   // Tab up
     usleep(30000);
     LiSendKeyboardEvent(0x5B, KEY_ACTION_UP, 0);   // Cmd up
+}
+
+- (UIBarButtonItem *)createPasteButton {
+    UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
+    UIImage *pasteIcon = [UIImage systemImageNamed:@"doc.on.clipboard"];
+    [button setImage:[pasteIcon imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate] forState:UIControlStateNormal];
+    button.tintColor = [UIColor whiteColor];
+    button.backgroundColor = [UIColor blackColor];
+    button.layer.cornerRadius = 4.0;
+    button.clipsToBounds = YES;
+    button.translatesAutoresizingMaskIntoConstraints = NO;
+    [NSLayoutConstraint activateConstraints:@[
+        [button.widthAnchor constraintEqualToConstant:28],
+        [button.heightAnchor constraintEqualToConstant:28]
+    ]];
+    button.imageEdgeInsets = UIEdgeInsetsMake(5, 5, 5, 5);
+    [button addTarget:self action:@selector(pasteClipboard) forControlEvents:UIControlEventTouchUpInside];
+    UIBarButtonItem *barButton = [[UIBarButtonItem alloc] initWithCustomView:button];
+    return barButton;
+}
+
+- (void)pasteClipboard {
+    NSString *text = [UIPasteboard generalPasteboard].string;
+    if (text.length > 0) {
+        NSData *utf8Data = [text dataUsingEncoding:NSUTF8StringEncoding];
+        if (utf8Data) {
+            LiSendUtf8TextEvent((const char *)[utf8Data bytes], (unsigned int)[utf8Data length]);
+        }
+    }
 }
 
 - (void)toolbarButtonClicked:(UIButton *)sender {
