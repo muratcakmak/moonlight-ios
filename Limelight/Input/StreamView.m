@@ -375,9 +375,12 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
                 UIBarButtonItem *deleteBarButton = [self createButtonWithImageNamed:@"DeleteIcon.png" backgroundColor:[UIColor blackColor] target:self action:@selector(toolbarButtonClicked:) keyCode:0x2E isToggleable:NO];
                 UIBarButtonItem *cmdTabBarButton = [self createCmdTabButton];
                 UIBarButtonItem *pasteBarButton = [self createPasteButton];
+                UIBarButtonItem *cmdCButton = [self createComboButton:@"⌘C" action:@selector(cmdCPressed)];
+                UIBarButtonItem *cmdVButton = [self createComboButton:@"⌘V" action:@selector(cmdVPressed)];
+                UIBarButtonItem *cmdAButton = [self createComboButton:@"⌘A" action:@selector(cmdAPressed)];
                 UIBarButtonItem *flexibleSpace = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil];
 
-                [customToolbarView setItems:[NSArray arrayWithObjects:doneBarButton, cmdTabBarButton, pasteBarButton, windowsBarButton, escapeBarButton, tabBarButton, shiftBarButton, controlBarButton, altBarButton, deleteBarButton, flexibleSpace, nil]];
+                [customToolbarView setItems:[NSArray arrayWithObjects:doneBarButton, cmdTabBarButton, cmdCButton, cmdVButton, cmdAButton, pasteBarButton, escapeBarButton, shiftBarButton, controlBarButton, altBarButton, deleteBarButton, flexibleSpace, nil]];
                 keyInputField.inputAccessoryView = customToolbarView;
 #endif
                 [keyInputField becomeFirstResponder];
@@ -432,15 +435,39 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
 }
 
 - (void)cmdTabPressed {
-    // Send Cmd+Tab (app switcher)
-    LiSendKeyboardEvent(0x5B, KEY_ACTION_DOWN, 0); // Cmd down
-    usleep(30000);
-    LiSendKeyboardEvent(0x09, KEY_ACTION_DOWN, 0); // Tab down
-    usleep(30000);
-    LiSendKeyboardEvent(0x09, KEY_ACTION_UP, 0);   // Tab up
-    usleep(30000);
-    LiSendKeyboardEvent(0x5B, KEY_ACTION_UP, 0);   // Cmd up
+    [self sendCmdCombo:0x09]; // Cmd+Tab
 }
+
+- (UIBarButtonItem *)createComboButton:(NSString *)label action:(SEL)action {
+    UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
+    [button setTitle:label forState:UIControlStateNormal];
+    [button setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    button.titleLabel.font = [UIFont boldSystemFontOfSize:10];
+    button.backgroundColor = [UIColor blackColor];
+    button.layer.cornerRadius = 4.0;
+    button.clipsToBounds = YES;
+    button.translatesAutoresizingMaskIntoConstraints = NO;
+    [NSLayoutConstraint activateConstraints:@[
+        [button.widthAnchor constraintEqualToConstant:32],
+        [button.heightAnchor constraintEqualToConstant:28]
+    ]];
+    [button addTarget:self action:action forControlEvents:UIControlEventTouchUpInside];
+    return [[UIBarButtonItem alloc] initWithCustomView:button];
+}
+
+- (void)sendCmdCombo:(short)keyCode {
+    LiSendKeyboardEvent(0x5B, KEY_ACTION_DOWN, 0);
+    usleep(30000);
+    LiSendKeyboardEvent(keyCode, KEY_ACTION_DOWN, 0);
+    usleep(30000);
+    LiSendKeyboardEvent(keyCode, KEY_ACTION_UP, 0);
+    usleep(30000);
+    LiSendKeyboardEvent(0x5B, KEY_ACTION_UP, 0);
+}
+
+- (void)cmdCPressed { [self sendCmdCombo:0x43]; }  // Cmd+C (copy)
+- (void)cmdVPressed { [self sendCmdCombo:0x56]; }  // Cmd+V (paste)
+- (void)cmdAPressed { [self sendCmdCombo:0x41]; }  // Cmd+A (select all)
 
 - (UIBarButtonItem *)createPasteButton {
     UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
