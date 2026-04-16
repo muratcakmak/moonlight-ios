@@ -200,10 +200,27 @@ static NSMutableSet* hostList;
                     [self hideLoadingFrame: nil];
                     return;
                 }
-                
+
                 [self updateAppsForHost:host];
                 [self->_appManager stopRetrieving];
                 [self->_appManager retrieveAssetsFromHost:host];
+
+                // OpenBench: Auto-launch Desktop after server confirms app list.
+                // This is safe because we're in the success callback with a real
+                // server response (not cached data).
+                if (!self->_autoLaunchedDesktop) {
+                    for (TemporaryApp* app in self->_sortedAppList) {
+                        if ([app.name isEqualToString:@"Desktop"]) {
+                            self->_autoLaunchedDesktop = YES;
+                            Log(LOG_I, @"OpenBench: Auto-launching Desktop");
+                            [self hideLoadingFrame: ^{
+                                [self appClicked:app view:nil];
+                            }];
+                            return;
+                        }
+                    }
+                }
+
                 [self hideLoadingFrame: nil];
             });
         }
