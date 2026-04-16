@@ -44,7 +44,12 @@
     self.multiController = [[NSUserDefaults standardUserDefaults] boolForKey:@"multipleControllers"];
     self.swapABXYButtons = [[NSUserDefaults standardUserDefaults] boolForKey:@"swapABXYButtons"];
     self.btMouseSupport = [[NSUserDefaults standardUserDefaults] boolForKey:@"btMouseSupport"];
-    self.statsOverlay = [[NSUserDefaults standardUserDefaults] boolForKey:@"statsOverlay"];
+    // OpenBench: Enable stats overlay by default (user can disable in settings)
+    if ([[NSUserDefaults standardUserDefaults] objectForKey:@"statsOverlay"] == nil) {
+        self.statsOverlay = YES;
+    } else {
+        self.statsOverlay = [[NSUserDefaults standardUserDefaults] boolForKey:@"statsOverlay"];
+    }
     
     NSInteger _screenSize = [[NSUserDefaults standardUserDefaults] integerForKey:@"streamResolution"];
     switch (_screenSize) {
