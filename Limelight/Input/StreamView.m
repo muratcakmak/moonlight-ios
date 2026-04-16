@@ -377,10 +377,11 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
                 UIBarButtonItem *pasteBarButton = [self createPasteButton];
                 UIBarButtonItem *cmdCButton = [self createComboButton:@"⌘C" action:@selector(cmdCPressed)];
                 UIBarButtonItem *cmdVButton = [self createComboButton:@"⌘V" action:@selector(cmdVPressed)];
-                UIBarButtonItem *cmdAButton = [self createComboButton:@"⌘A" action:@selector(cmdAPressed)];
+                UIBarButtonItem *cmdZButton = [self createComboButton:@"⌘Z" action:@selector(cmdZPressed)];
+                UIBarButtonItem *cmdSpaceButton = [self createComboButton:@"🔍" action:@selector(cmdSpacePressed)];
                 UIBarButtonItem *flexibleSpace = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil];
 
-                [customToolbarView setItems:[NSArray arrayWithObjects:doneBarButton, cmdTabBarButton, cmdCButton, cmdVButton, cmdAButton, pasteBarButton, escapeBarButton, shiftBarButton, controlBarButton, altBarButton, deleteBarButton, flexibleSpace, nil]];
+                [customToolbarView setItems:[NSArray arrayWithObjects:doneBarButton, cmdTabBarButton, cmdCButton, cmdVButton, cmdZButton, cmdSpaceButton, pasteBarButton, escapeBarButton, shiftBarButton, controlBarButton, altBarButton, deleteBarButton, flexibleSpace, nil]];
                 keyInputField.inputAccessoryView = customToolbarView;
 #endif
                 [keyInputField becomeFirstResponder];
@@ -465,9 +466,11 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
     LiSendKeyboardEvent(0x5B, KEY_ACTION_UP, 0);
 }
 
-- (void)cmdCPressed { [self sendCmdCombo:0x43]; }  // Cmd+C (copy)
-- (void)cmdVPressed { [self sendCmdCombo:0x56]; }  // Cmd+V (paste)
-- (void)cmdAPressed { [self sendCmdCombo:0x41]; }  // Cmd+A (select all)
+- (void)cmdCPressed { [self sendCmdCombo:0x43]; }      // Cmd+C (copy)
+- (void)cmdVPressed { [self sendCmdCombo:0x56]; }      // Cmd+V (paste)
+- (void)cmdAPressed { [self sendCmdCombo:0x41]; }      // Cmd+A (select all)
+- (void)cmdZPressed { [self sendCmdCombo:0x5A]; }      // Cmd+Z (undo)
+- (void)cmdSpacePressed { [self sendCmdCombo:0x20]; }  // Cmd+Space (Spotlight)
 
 - (UIBarButtonItem *)createPasteButton {
     UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
