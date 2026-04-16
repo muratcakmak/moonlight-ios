@@ -51,7 +51,9 @@
         self.statsOverlay = [[NSUserDefaults standardUserDefaults] boolForKey:@"statsOverlay"];
     }
     
-    NSInteger _screenSize = [[NSUserDefaults standardUserDefaults] integerForKey:@"streamResolution"];
+    // OpenBench: Default to 1080p if user hasn't changed resolution
+    NSInteger _screenSize = [[NSUserDefaults standardUserDefaults] objectForKey:@"streamResolution"]
+        ? [[NSUserDefaults standardUserDefaults] integerForKey:@"streamResolution"] : 1;
     switch (_screenSize) {
         case 0:
             self.height = [NSNumber numberWithInteger:720];
